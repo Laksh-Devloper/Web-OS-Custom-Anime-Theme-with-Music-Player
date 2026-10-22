@@ -1,11 +1,72 @@
-# webos-vibehack
+# webOS Custom Anime Theme with Music Player
 
-An Apple TV-style home screen for LG TVs. It's a webOS port of the launcher from
-[tv-vibehack](https://github.com/Gathin23/tv-vibehack), which does the same for Android TVs.
+An anime-style home screen for LG webOS TVs: a flat dusk scene with a big sun on the horizon, live
+weather, a sky that follows the time of day, and a background music player.
 
-![The launcher running on an LG OLED C6](docs/screenshot.jpg)
+Built on [webos-vibehack](https://github.com/OmkarK97/webos-vibehack), the webOS port of
+[tv-vibehack](https://github.com/Gathin23/tv-vibehack)'s Apple TV-style launcher.
 
-Tested on an LG OLED C6 (OLED55C6XLA, webOS 26, firmware 43.21.79).
+| Day | Night |
+|---|---|
+| ![The launcher in the afternoon](docs/screenshot-day.jpg) | ![The launcher at night, with stars](docs/screenshot-night.jpg) |
+
+Tested on an LG LM636 and an LG OLED C6 (webOS 26). The original launcher, before the anime theme:
+[docs/screenshot.jpg](docs/screenshot.jpg).
+
+## Features
+
+**Anime dusk scene**
+- Flat, anime-style sky over water, with the dock as the horizon.
+- The sky and water colours follow the real time through dawn, day, dusk and night, and stars
+  twinkle at night.
+- The sun takes the colour of the focused app, and its reflection shimmers on the water.
+- Clouds drift across the sun, and the sun sets below the horizon when you scroll into the app grid.
+
+**Live weather**
+- The temperature and conditions show after the greeting, for example "24° · Clear in Tokyo".
+  The data comes from [Open-Meteo](https://open-meteo.com), which is free and needs no key.
+- The weather shows in the scene: overcast adds more clouds, and rain or snow
+  falls across the screen.
+- The city is detected from your network, or you can set `weatherCity` in `app/config.js`.
+
+**Your own character**
+- Put your character's pictures in `app/characters/`: `morning.png`, `day.png`, `evening.png` and
+  `night.png`. Transparent PNGs look best.
+- The picture stands on the horizon, bobs gently, and crossfades when the time of day changes.
+  Any missing picture is skipped.
+
+**Background music**
+- A calm playlist streams from JioSaavn quietly while the launcher is open.
+- The music fades out when an app opens and fades back in when you return.
+- The remote's media keys work too: ▶ ⏸ to play and pause, ⏩ ⏪ to skip.
+- To change the songs, edit the list at the top of `app/music.js`, or put MP3s in `app/music/` and
+  list them there (`src: 'music/song.mp3'`).
+- Or play a public Spotify playlist: `sync-playlist.py` looks up each song on your own
+  [JioSaavnAPI](https://github.com/cyberboysumanjay/JioSaavnAPI) and writes `app/playlist.js`:
+  ```bash
+  # in the JioSaavnAPI folder, in its own terminal
+  pip3 install -r requirements.txt && python3 app.py
+  # here
+  python3 sync-playlist.py https://open.spotify.com/playlist/<id>
+  TV_HOST=192.168.1.50 ./install.sh
+  ```
+- Under the clock: previous, play/pause and next buttons, and the song that's playing.
+
+**Animations**
+- On startup the sun rises and the header drops in.
+- Manga speed lines streak past when the focused app changes.
+- Opening an app plays a full-screen wipe in its colour with its name.
+- The focus frame springs between tiles, and the buttons respond with a small bounce.
+
+**TV-friendly**
+- Large, bold type that reads from across the room.
+- A thick, solid focus frame that's easy to follow.
+- The CSS works on older webOS browsers (2020 models onwards).
+
+**Launcher basics**
+- A dock with your four favourite apps, plus a grid of all your apps synced from the TV.
+- An Inputs menu (HDMI and Live TV), Wi-Fi and Settings.
+- Rearrange tiles on the TV, and send the Home button to the launcher with `home-watch.py`.
 
 ## What's different from Android
 
@@ -47,8 +108,8 @@ npx -y -p @webos-tools/cli ares-setup-device -m lgtv -i "{'privatekey':'lgtv_web
 **3. Install**
 
 ```bash
-git clone https://github.com/OmkarK97/webos-vibehack.git
-cd webos-vibehack
+git clone https://github.com/Laksh-Devloper/Web-OS-Custom-Anime-Theme-with-Music-Player.git
+cd Web-OS-Custom-Anime-Theme-with-Music-Player
 python3 -m venv venv && venv/bin/pip install websockets
 TV_HOST=192.168.1.50 ./install.sh
 ```
@@ -126,6 +187,10 @@ For when you do land on it. Names vary a little by webOS version:
 | File | What it does |
 |---|---|
 | [`app/`](app/) | The launcher: `index.html`, `style.css`, `app.js`, `config.js`, `appinfo.json` |
+| [`app/scene.js`](app/scene.js) | Time-of-day sky colours and stars, live weather, the character |
+| [`app/music.js`](app/music.js) | Background music player and playlist |
+| [`app/characters/`](app/characters/) | Your character images, one per time of day |
+| [`sync-playlist.py`](sync-playlist.py) | Turns a public Spotify playlist into `app/playlist.js` via your JioSaavnAPI |
 | [`install.sh`](install.sh) | Syncs your apps, packages and installs the launcher, and opens it |
 | [`sync-apps.py`](sync-apps.py) | Reads apps, icons and HDMI inputs from the TV into `app/apps.js` and `app/icons/` |
 | [`home-watch.py`](home-watch.py) | Sends the Home button to the launcher |
@@ -133,8 +198,25 @@ For when you do land on it. Names vary a little by webOS version:
 | [`lgtv.py`](lgtv.py) | Pairs with and talks to the TV's remote-control service |
 | [`assets/icon.jpg`](assets/icon.jpg) | The app icon, resized to PNG by `install.sh` |
 
+## References
+
+Projects and services this one is built on or uses:
+
+| Reference | What we took from it |
+|---|---|
+| [OmkarK97/webos-vibehack](https://github.com/OmkarK97/webos-vibehack) | The webOS launcher this repo is built on: app grid, dock, Inputs menu, remote navigation, `install.sh`, `sync-apps.py`, `home-watch.py`, `lgtv.py` |
+| [Gathin23/tv-vibehack](https://github.com/Gathin23/tv-vibehack) | The original Apple TV-style launcher for Android TV: design, layout and app icon |
+| [cyberboysumanjay/JioSaavnAPI](https://github.com/cyberboysumanjay/JioSaavnAPI) | Song lookups for `sync-playlist.py`, and the approach used to resolve the JioSaavn stream links |
+| [Open-Meteo](https://open-meteo.com) | Live weather and city geocoding (free, no key) |
+| [ipwho.is](https://ipwho.is) | Detecting the city from the network when `weatherCity` is empty |
+| [Spotify embed player](https://open.spotify.com) | Reading the track list of a public playlist in `sync-playlist.py` |
+| [webOS TV CLI (`@webos-tools/cli`)](https://github.com/webos-tools/cli) | Packaging and installing the app (`ares-package`, `ares-install`) |
+| [Outfit](https://github.com/Outfitio/Outfit-Fonts) | The typeface, under the SIL Open Font License |
+
 ## Credits
 
-The design, layout and app icon come from [tv-vibehack](https://github.com/Gathin23/tv-vibehack)
+The anime theme, live weather, time-of-day sky and music player are by
+[Laksh-Devloper](https://github.com/Laksh-Devloper). The launcher itself is
+[webos-vibehack](https://github.com/OmkarK97/webos-vibehack). The design, layout and app icon come from [tv-vibehack](https://github.com/Gathin23/tv-vibehack)
 by [Gathin](https://github.com/Gathin23). The Outfit font is under the SIL Open Font License
 ([`app/fonts/OFL.txt`](app/fonts/OFL.txt)). MIT licensed, see [`LICENSE`](LICENSE).

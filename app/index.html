@@ -6,18 +6,44 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Ambient glow in the colour of the focused dock app; two layers so colours crossfade. -->
-  <div id="ambientA" class="ambient"></div>
-  <div id="ambientB" class="ambient"></div>
+  <!-- Anime dusk: the dock is the horizon. The sun takes the focused app's colour and sets as the
+       grid scrolls up; clouds drift across it and its reflection shimmers on the water. -->
+  <div id="sky">
+    <div id="stars"></div>
+    <div id="sun"></div>
+    <div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div><div class="cloud c4"></div><div class="cloud c5"></div>
+  </div>
+  <div id="sea"><i></i><i></i><i></i><i></i><i></i></div>
+
+  <!-- Your character (app/characters/<time of day>.png), standing on the horizon; two layers crossfade. -->
+  <div id="character"><img id="charA" alt=""><img id="charB" alt=""></div>
+
+  <!-- Rain or snow from the live weather (scene.js fills it). -->
+  <div id="precip"></div>
+
+  <!-- Manga speed lines that streak past when the focused app changes. -->
+  <div id="speed"><i></i><i></i><i></i><i></i><i></i><i></i></div>
 
   <!-- Top shelf: the focused dock app's name, above the dock. -->
   <div id="hero"></div>
 
   <header>
     <div id="leftBlock">
-      <div id="greeting"></div>
+      <div id="greetRow"><div id="greeting"></div><span id="weather"></span></div>
       <div id="timeRow">
         <span id="clock"></span><span id="ampm"></span><span class="divider"></span><span id="date"></span>
+      </div>
+      <div id="nowPlaying" class="paused">
+        <div class="pill icon" id="btnPrev">
+          <svg viewBox="0 0 24 24"><path d="M6,6h2v12H6zM9.5,12l8.5,6V6z"/></svg>
+        </div>
+        <div class="pill icon" id="btnPlay">
+          <svg viewBox="0 0 24 24"><path id="playIcon" d="M8,5v14l11,-7z"/></svg>
+        </div>
+        <div class="pill icon" id="btnNext">
+          <svg viewBox="0 0 24 24"><path d="M6,18l8.5,-6L6,6v12zM16,6v12h2V6h-2z"/></svg>
+        </div>
+        <span class="eq"><i></i><i></i><i></i></span><span id="npTitle"></span>
       </div>
     </div>
     <div id="topButtons">
@@ -50,8 +76,14 @@
 
   <div id="toast"></div>
 
+  <!-- Eyecatch wipe shown while an app opens. -->
+  <div id="wipe"><div id="wipeName"></div></div>
+
   <script src="config.js"></script>
   <script src="apps.js"></script>
   <script src="app.js"></script>
+  <script src="scene.js"></script>
+  <script src="playlist.js"></script>   <!-- optional, made by sync-playlist.py -->
+  <script src="music.js"></script>
 </body>
 </html>

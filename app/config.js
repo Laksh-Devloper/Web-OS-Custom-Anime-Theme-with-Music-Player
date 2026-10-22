@@ -16,6 +16,9 @@ window.CONFIG = {
   // The Live TV app, offered at the end of the Inputs menu. Leave empty to omit.
   liveTvApp: 'com.webos.app.livetv',
 
+  // City for the weather in the header, e.g. 'Tokyo'. Leave empty to detect it from the network.
+  weatherCity: '',
+
   // Tiles per row in the grid; the dock always has this many slots.
   columns: 4
 };

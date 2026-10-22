@@ -1,9 +1,40 @@
-/* Sizes are the Android launcher's dp values doubled: webOS renders web apps at 1920x1080. */
+/* Sizes are the Android launcher's dp values doubled: webOS renders web apps at 1920x1080.
+   Anime dusk theme: flat colour fields, no gradients or glows. The dock is the horizon; the sun
+   behind it takes the focused app's colour (--sun, set by app.js).
+   Avoids newer CSS (inset, flex gap, backdrop-filter) so older webOS Chromium renders it too. */
 
+/* Static instances of the Outfit variable font (fonts/outfit-<weight>.ttf). The variable file's
+   default is weight 100, which older webOS Chromium shows for every weight. */
 @font-face {
   font-family: 'Outfit';
-  src: url('fonts/outfit.ttf') format('truetype');
-  font-weight: 100 900;
+  src: url('fonts/outfit-500.ttf') format('truetype');
+  font-weight: 500;
+}
+@font-face {
+  font-family: 'Outfit';
+  src: url('fonts/outfit-600.ttf') format('truetype');
+  font-weight: 600;
+}
+@font-face {
+  font-family: 'Outfit';
+  src: url('fonts/outfit-700.ttf') format('truetype');
+  font-weight: 700;
+}
+@font-face {
+  font-family: 'Outfit';
+  src: url('fonts/outfit-800.ttf') format('truetype');
+  font-weight: 800;
+}
+
+:root {
+  --sky: #171a24;            /* dusk sky, the ground */
+  --sea: #0d0f15;            /* water below the horizon, one tone step down */
+  --surface: #222632;        /* pills, dock shelf, panels */
+  --paper: #f4efe6;          /* ink on dark, and the focus colour */
+  --dim: rgba(244, 239, 230, 0.78);
+  --sun: #e8452c;            /* vermilion until an app is focused */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --spring: cubic-bezier(0.34, 1.5, 0.5, 1);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -12,34 +43,245 @@ html, body {
   width: 1920px;
   height: 1080px;
   overflow: hidden;
-  background: #000;
-  color: #fff;
+  background: var(--sky);
+  transition: background-color 3s ease;
+  color: var(--paper);
   font-family: 'Outfit', sans-serif;
+  font-weight: 500;
+  text-rendering: optimizeLegibility;
   cursor: default;
 }
 
-/* ---- ambient glow ---------------------------------------------------------------------------- */
+/* ---- the dusk scene -------------------------------------------------------------------------- */
 
-.ambient {
+#sky, #sea {
   position: absolute;
-  inset: 0;
-  opacity: 0;
-  transition: opacity 600ms ease;
+  left: 0;
+  right: 0;
+  overflow: hidden;
   pointer-events: none;
+}
+
+#sky { top: 0; height: 760px; }
+
+/* Sun: a flat disc, half sunk below the horizon. Rises on load, sets when the grid scrolls up. */
+#sun {
+  position: absolute;
+  left: 1260px;
+  top: 300px;
+  width: 560px;
+  height: 560px;
+  border-radius: 50%;
+  background: var(--sun);
+  transition: background-color 700ms ease, transform 900ms var(--ease-out);
+  animation: rise 1600ms var(--ease-out) both;
+}
+
+body.scrolled #sun { transform: translateY(380px); }
+
+@keyframes rise {
+  from { transform: translateY(460px); }
+  to { transform: none; }
+}
+
+/* Streak clouds in the sky's own colour cut across the sun, drifting slowly. */
+.cloud {
+  position: absolute;
+  height: 26px;
+  border-radius: 13px;
+  background: var(--sky);
+  transition: background-color 3s ease, opacity 1.5s ease;
+  animation: drift 26s ease-in-out infinite alternate;
+}
+
+.c1 { left: 1120px; top: 470px; width: 520px; }
+.c2 { left: 1460px; top: 540px; width: 420px; height: 18px; animation-duration: 34s; animation-delay: -9s; }
+.c3 { left: 1200px; top: 618px; width: 300px; height: 12px; animation-duration: 21s; animation-delay: -4s; }
+
+/* Extra clouds only show when it's overcast or raining. */
+.c4 { left: 1060px; top: 400px; width: 380px; height: 20px; animation-duration: 30s; opacity: 0; }
+.c5 { left: 1380px; top: 660px; width: 460px; height: 22px; animation-duration: 24s; animation-delay: -12s; opacity: 0; }
+body[data-sky="overcast"] .c4, body[data-sky="overcast"] .c5,
+body[data-sky="rain"] .c4, body[data-sky="rain"] .c5,
+body[data-sky="storm"] .c4, body[data-sky="storm"] .c5 { opacity: 1; }
+
+/* Night: stars come out over the darker sky. */
+#stars {
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  box-shadow:
+    210px 140px rgba(255,255,255,.7), 520px 300px rgba(255,255,255,.5), 860px 210px rgba(255,255,255,.6),
+    1120px 90px rgba(255,255,255,.5), 1380px 220px rgba(255,255,255,.7), 1820px 120px rgba(255,255,255,.5),
+    1560px 420px rgba(255,255,255,.4), 1760px 300px rgba(255,255,255,.6), 980px 420px rgba(255,255,255,.4),
+    1240px 460px rgba(255,255,255,.4), 1020px 30px rgba(255,255,255,.5), 1660px 40px rgba(255,255,255,.6);
+  opacity: 0;
+  transition: opacity 3s ease;
+}
+
+body.night #stars { opacity: 1; animation: twinkle 4s ease-in-out infinite alternate; }
+
+@keyframes twinkle { from { opacity: 0.6; } to { opacity: 1; } }
+
+/* Your character stands on the horizon at the left of the sun, bobbing gently.
+   Sinks with the sun when the grid scrolls up. */
+#character {
+  position: absolute;
+  left: 1000px;
+  bottom: 392px;            /* feet on the dock shelf */
+  width: 520px;
+  height: 460px;
+  pointer-events: none;
+  transition: transform 900ms var(--ease-out), opacity 600ms ease;
+}
+
+body.scrolled #character { transform: translateY(240px); opacity: 0; }
+
+#character img {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  max-width: 520px;
+  max-height: 460px;
+  opacity: 0;
+  transform: translate(-50%, 30px);
+  transition: opacity 1.2s ease, transform 1.2s var(--ease-out);
+}
+
+#character img.shown {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  animation: bob 4s ease-in-out 1.2s infinite alternate;
+}
+
+@keyframes bob {
+  from { transform: translate(-50%, 0); }
+  to { transform: translate(-50%, -10px); }
+}
+
+/* Rain streaks or snowflakes from the live weather. */
+#precip {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 2s ease;
+}
+
+body[data-sky="rain"] #precip, body[data-sky="storm"] #precip, body[data-sky="snow"] #precip { opacity: 1; }
+
+#precip i {
+  position: absolute;
+  top: -80px;
+  width: 3px;
+  height: 56px;
+  border-radius: 2px;
+  background: rgba(244, 239, 230, 0.28);
+  animation: rain 1s linear infinite;
+}
+
+@keyframes rain {
+  from { transform: translate(0, 0) rotate(12deg); }
+  to { transform: translate(-240px, 1200px) rotate(12deg); }
+}
+
+body[data-sky="snow"] #precip i {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(244, 239, 230, 0.7);
+  animation-name: snow;
+  animation-duration: 7s !important;
+}
+
+@keyframes snow {
+  from { transform: translate(0, 0); }
+  to { transform: translate(-120px, 1200px); }
+}
+
+@keyframes drift {
+  from { transform: translateX(-90px); }
+  to { transform: translateX(90px); }
+}
+
+/* Water: a flat field below the horizon, with the sun's reflection as shimmering bars. */
+#sea { top: 760px; bottom: 0; background: var(--sea); transition: background-color 3s ease; }
+
+#sea i {
+  position: absolute;
+  left: 1540px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--sun);
+  transition: background-color 700ms ease;
+  animation: shimmer 2.8s ease-in-out infinite alternate, fadeIn 900ms 900ms both;
+}
+
+#sea i:nth-child(1) { top: 26px;  width: 400px; margin-left: -200px; }
+#sea i:nth-child(2) { top: 64px;  width: 300px; margin-left: -150px; animation-delay: -0.7s, 1000ms; }
+#sea i:nth-child(3) { top: 108px; width: 210px; margin-left: -105px; animation-delay: -1.4s, 1100ms; opacity: 0.8; }
+#sea i:nth-child(4) { top: 160px; width: 130px; margin-left: -65px;  animation-delay: -2.1s, 1200ms; opacity: 0.6; }
+#sea i:nth-child(5) { top: 222px; width: 60px;  margin-left: -30px;  animation-delay: -0.3s, 1300ms; opacity: 0.4; }
+
+@keyframes shimmer {
+  from { transform: scaleX(0.82) translateX(-10px); }
+  to { transform: scaleX(1.06) translateX(10px); }
+}
+
+@keyframes fadeIn { from { opacity: 0; } }
+
+/* Manga speed lines: streak right-to-left behind the app name when it changes. */
+#speed {
+  position: absolute;
+  left: 0;
+  top: 500px;
+  width: 1920px;
+  height: 170px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+#speed i {
+  position: absolute;
+  left: 0;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--paper);
+  opacity: 0;
+}
+
+#speed i:nth-child(1) { top: 18px;  width: 520px; }
+#speed i:nth-child(2) { top: 46px;  width: 300px; }
+#speed i:nth-child(3) { top: 74px;  width: 680px; height: 6px; }
+#speed i:nth-child(4) { top: 102px; width: 240px; }
+#speed i:nth-child(5) { top: 128px; width: 460px; }
+#speed i:nth-child(6) { top: 152px; width: 340px; height: 3px; }
+
+#speed.go i { animation: zip 420ms cubic-bezier(0.5, 0, 0.3, 1) both; }
+#speed.go i:nth-child(2) { animation-delay: 40ms; }
+#speed.go i:nth-child(3) { animation-delay: 10ms; }
+#speed.go i:nth-child(4) { animation-delay: 70ms; }
+#speed.go i:nth-child(5) { animation-delay: 25ms; }
+#speed.go i:nth-child(6) { animation-delay: 55ms; }
+
+@keyframes zip {
+  0% { transform: translateX(1920px); opacity: 0; }
+  20% { opacity: 0.55; }
+  100% { transform: translateX(-700px); opacity: 0; }
 }
 
 /* ---- top shelf ------------------------------------------------------------------------------- */
 
 #hero {
   position: absolute;
-  left: 136px;
-  font-size: 96px;
-  font-weight: 300;
-  letter-spacing: -0.02em;
+  left: 128px;
+  font-size: 112px;
+  font-weight: 800;
+  letter-spacing: -0.035em;
   line-height: 1;
   white-space: nowrap;
   opacity: 0;
-  transition: opacity 260ms ease, transform 200ms ease;
+  transition: opacity 200ms ease, transform 260ms var(--ease-out);
   pointer-events: none;
 }
 
@@ -47,70 +289,133 @@ html, body {
 
 header {
   position: absolute;
-  top: 52px;
-  left: 112px;
-  right: 112px;
+  top: 60px;
+  left: 120px;
+  right: 120px;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
   z-index: 3;
-  transition: opacity 300ms ease, transform 360ms cubic-bezier(0.25, 0.8, 0.3, 1);
+  transition: opacity 300ms ease, transform 420ms var(--ease-out);
+  animation: drop 900ms 200ms var(--ease-out) both;
 }
 
-/* Below the dock: the header slides away so the grid gets the whole screen. */
+@keyframes drop {
+  from { opacity: 0; transform: translateY(-40px); }
+  to { opacity: 1; transform: none; }
+}
+
 body.scrolled header {
   opacity: 0;
   transform: translateY(-48px);
   pointer-events: none;
 }
 
+#greetRow { display: flex; align-items: baseline; }
+
+/* "24° · Clear in Tokyo", after the greeting. */
+#weather {
+  margin-left: 20px;
+  color: var(--dim);
+  font-size: 30px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+
+#weather::before { content: '\00b7'; margin-right: 20px; }
+#weather.shown { opacity: 1; }
+
 #greeting {
-  margin-left: 8px;
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 24px;
-  font-weight: 500;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
+  margin-left: 4px;
+  margin-bottom: 6px;
+  color: var(--dim);
+  font-size: 30px;
+  font-weight: 600;
 }
 
 #timeRow { display: flex; align-items: flex-end; }
 
 #clock {
-  font-size: 104px;
-  font-weight: 300;
-  letter-spacing: -0.04em;
+  font-size: 120px;
+  font-weight: 600;
+  letter-spacing: -0.045em;
   line-height: 1;
 }
 
 #ampm {
-  margin: 0 0 16px 12px;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 30px;
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  margin: 0 0 20px 12px;
+  color: var(--dim);
+  font-size: 32px;
+  font-weight: 600;
 }
 
+/* A short bar in the sun's colour: the one accent in the header. */
 .divider {
-  width: 2px;
-  height: 52px;
-  margin: 0 32px 16px;
-  background: rgba(255, 255, 255, 0.2);
+  width: 8px;
+  height: 56px;
+  margin: 0 32px 18px;
+  border-radius: 4px;
+  background: var(--sun);
+  transition: background-color 700ms ease;
 }
 
 #date {
-  margin-bottom: 18px;
-  color: rgba(255, 255, 255, 0.65);
-  font-size: 28px;
-  font-weight: 400;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  margin-bottom: 22px;
+  color: var(--dim);
+  font-size: 32px;
+  font-weight: 600;
   white-space: pre;
 }
 
-#topButtons { display: flex; margin-bottom: 12px; }
+/* Now playing: a small line under the clock with a three-bar equaliser in the sun's colour. */
+#leftBlock { position: relative; }
 
-/* Frosted pill, tvOS style. */
+#nowPlaying {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  display: flex;
+  align-items: center;
+  margin: 22px 0 0 0;
+  color: var(--dim);
+  font-size: 26px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: opacity 400ms ease;
+}
+
+#nowPlaying .pill { height: 72px; margin: 0 12px 0 0; font-size: 28px; }
+#nowPlaying .pill.icon { width: 72px; }
+#nowPlaying .pill svg { width: 36px; height: 36px; }
+#nowPlaying .eq { margin-left: 12px; }
+#nowPlaying.paused .eq, #nowPlaying.paused #npTitle { opacity: 0.45; }
+
+.eq { display: flex; align-items: flex-end; height: 24px; margin-right: 16px; }
+
+.eq i {
+  width: 6px;
+  height: 24px;
+  margin-right: 4px;
+  border-radius: 3px;
+  background: var(--sun);
+  transform-origin: bottom;
+  transform: scaleY(0.3);
+  transition: background-color 700ms ease;
+}
+
+#nowPlaying.playing .eq i { animation: eq 900ms ease-in-out infinite alternate; }
+#nowPlaying.playing .eq i:nth-child(2) { animation-duration: 700ms; animation-delay: -300ms; }
+#nowPlaying.playing .eq i:nth-child(3) { animation-duration: 1100ms; animation-delay: -600ms; }
+
+@keyframes eq {
+  from { transform: scaleY(0.25); }
+  to { transform: scaleY(1); }
+}
+
+#topButtons { display: flex; margin-bottom: 14px; }
+
 .pill {
   display: flex;
   align-items: center;
@@ -118,65 +423,64 @@ body.scrolled header {
   margin-left: 20px;
   padding: 0 40px 0 32px;
   border-radius: 42px;
-  border: 2px solid rgba(255, 255, 255, 0.22);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08));
-  color: #fff;
+  background: var(--surface);
+  color: var(--paper);
   font-size: 30px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
+  font-weight: 600;
   white-space: nowrap;
-  transition: background 160ms ease, color 160ms ease, transform 200ms ease;
+  transition: background-color 160ms ease, color 160ms ease, transform 280ms var(--spring);
 }
 
 .pill svg { width: 44px; height: 44px; margin-right: 18px; fill: currentColor; }
 
+/* Icon-only pill (play/pause): a circle. */
+.pill.icon { width: 84px; padding: 0; justify-content: center; }
+.pill.icon svg { margin-right: 0; }
+
 .pill.focused {
-  background: rgba(255, 255, 255, 0.96);
-  border-color: transparent;
-  color: #000;
-  transform: scale(1.04);
+  background: var(--paper);
+  color: var(--sea);
+  transform: scale(1.08);
 }
 
 /* ---- grid ------------------------------------------------------------------------------------ */
 
 #viewport {
   position: absolute;
-  inset: 0;
+  top: 0; right: 0; bottom: 0; left: 0;
   overflow: hidden;
 }
 
 #stage {
   position: absolute;
-  inset: 0;
-  transition: transform 420ms cubic-bezier(0.25, 0.8, 0.3, 1);
+  top: 0; right: 0; bottom: 0; left: 0;
+  transition: transform 460ms var(--ease-out);
 }
 
-/* The tvOS lighter band behind the dock row. */
+/* The dock shelf sits on the horizon line, a flat step up from the water. */
 #dockBand {
   position: absolute;
   border-radius: 52px;
-  background: #141416;
-  border: 2px solid rgba(255, 255, 255, 0.12);
+  background: var(--surface);
 }
 
 .item {
   position: absolute;
   width: 360px;
   opacity: 0;
-  transform: translateY(24px);
-  transition: opacity 400ms ease, transform 400ms cubic-bezier(0.2, 0.8, 0.3, 1),
-    left 320ms cubic-bezier(0.25, 0.8, 0.3, 1), top 320ms cubic-bezier(0.25, 0.8, 0.3, 1);
+  transform: translateY(40px);
+  transition: opacity 420ms ease, transform 520ms var(--ease-out),
+    left 320ms var(--ease-out), top 320ms var(--ease-out);
 }
 
 .item.shown { opacity: 1; transform: none; }
 
 .item.dock .name { display: none; }
 
-/* Rearranging: the held tile wiggles and floats above the others; the glass steps aside. */
 .item.moving { z-index: 2; }
 
 .item.moving .card {
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 6px var(--sun), 0 24px 48px rgba(0, 0, 0, 0.6); /* taste-skill-ignore: lifted while dragging */
   animation: wiggle 240ms ease-in-out infinite alternate;
 }
 
@@ -191,24 +495,15 @@ body.editing #glass { opacity: 0 !important; }
   position: relative;
   width: 360px;
   height: 202px;
-  border-radius: 32px;
+  border-radius: 24px;
   overflow: hidden;
-  background: #1c1c1e;
-  transition: transform 180ms ease;
-}
-
-/* Faint rim so black tiles (Apple TV) still read against the black page. */
-.card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 32px;
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.1);
+  background: var(--surface);
+  transition: transform 200ms ease;
 }
 
 .item.focused .card {
   transform: scale(1.1);
-  transition: transform 260ms cubic-bezier(0.34, 1.6, 0.5, 1);
+  transition: transform 300ms var(--spring);
 }
 
 .card img {
@@ -219,7 +514,6 @@ body.editing #glass { opacity: 0 !important; }
   transform: translateX(-50%);
 }
 
-/* Transparent system icons: smaller glyph, centred. */
 .card.glyph img {
   top: 50%;
   height: 62%;
@@ -228,46 +522,31 @@ body.editing #glass { opacity: 0 !important; }
 
 .name {
   height: 44px;
-  margin-top: 14px;
-  color: rgba(255, 255, 255, 0.95);
-  font-size: 28px;
-  font-weight: 500;
-  letter-spacing: 0.02em;
+  margin-top: 16px;
+  color: var(--paper);
+  font-size: 30px;
+  font-weight: 700;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   opacity: 0;
   transform: translateY(-12px);
-  transition: opacity 220ms ease, transform 220ms ease;
+  transition: opacity 220ms ease, transform 260ms var(--ease-out);
 }
 
 .item.focused .name { opacity: 1; transform: translateY(8px); }
 
-/* The single floating glass highlight that springs between tiles. */
+/* Focus frame: a solid paper ring that springs between tiles. Flat, unmistakable from the sofa. */
 #glass {
   position: absolute;
   left: 0;
   top: 0;
-  border-radius: 47px;
-  border: 3px solid rgba(255, 255, 255, 0.8);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.07));
-  box-shadow: 0 0 4px 2px rgba(255, 255, 255, 0.19), 0 0 12px 4px rgba(255, 255, 255, 0.08);
-  overflow: hidden;
+  border-radius: 44px;
+  border: 6px solid var(--paper);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 180ms ease, transform 520ms cubic-bezier(0.3, 1.35, 0.45, 1);
-}
-
-/* Bright top specular. */
-#glass::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 45%;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0));
+  transition: opacity 180ms ease, transform 480ms cubic-bezier(0.3, 1.3, 0.45, 1);
 }
 
 /* ---- inputs dropdown ------------------------------------------------------------------------- */
@@ -276,11 +555,11 @@ body.editing #glass { opacity: 0 !important; }
   position: absolute;
   z-index: 5;
   padding: 16px;
-  border-radius: 40px;
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  background: linear-gradient(180deg, rgba(42, 42, 46, 0.95), rgba(22, 22, 24, 0.96));
+  border-radius: 36px;
+  background: var(--surface);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55); /* taste-skill-ignore: dropdown menu */
   transform-origin: top;
-  transition: opacity 220ms ease, transform 220ms cubic-bezier(0.2, 0.8, 0.3, 1);
+  transition: opacity 220ms ease, transform 260ms var(--ease-out);
 }
 
 #inputsPanel.hidden { opacity: 0; transform: translateY(-16px) scaleY(0.92); pointer-events: none; }
@@ -289,18 +568,19 @@ body.editing #glass { opacity: 0 !important; }
   display: flex;
   align-items: center;
   height: 84px;
-  padding: 0 24px;
-  border-radius: 24px;
+  padding: 0 28px;
+  border-radius: 22px;
   font-size: 30px;
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
+  transition: background-color 140ms ease, color 140ms ease;
 }
 
 .inputRow svg { width: 40px; height: 40px; margin-right: 20px; fill: currentColor; }
 
-.inputRow.focused { background: rgba(255, 255, 255, 0.96); color: #000; }
+.inputRow.focused { background: var(--paper); color: var(--sea); }
 
-.separator { height: 2px; margin: 12px 24px; background: rgba(255, 255, 255, 0.12); }
+.separator { height: 4px; margin: 12px 24px; border-radius: 2px; background: var(--sky); }
 
 /* ---- toast ----------------------------------------------------------------------------------- */
 
@@ -308,14 +588,51 @@ body.editing #glass { opacity: 0 !important; }
   position: absolute;
   left: 50%;
   bottom: 80px;
-  padding: 20px 40px;
+  padding: 22px 44px;
   border-radius: 40px;
-  background: rgba(40, 40, 44, 0.95);
-  font-size: 28px;
+  background: var(--paper);
+  color: var(--sea);
+  font-size: 30px;
+  font-weight: 600;
   opacity: 0;
-  transform: translateX(-50%);
-  transition: opacity 200ms ease;
+  transform: translate(-50%, 20px);
+  transition: opacity 200ms ease, transform 300ms var(--spring);
   z-index: 6;
 }
 
-#toast.shown { opacity: 1; }
+#toast.shown { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---- eyecatch wipe on launch ----------------------------------------------------------------- */
+
+#wipe {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  padding-left: 160px;
+  background: var(--sun);
+  transform: translateX(100%);
+  pointer-events: none;
+}
+
+#wipe.in { animation: wipeIn 380ms cubic-bezier(0.7, 0, 0.3, 1) both; }
+#wipe.out { animation: wipeOut 420ms cubic-bezier(0.7, 0, 0.3, 1) both; }
+
+#wipeName {
+  color: var(--paper);
+  font-size: 180px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+}
+
+#wipe.in #wipeName { animation: nameIn 520ms 200ms var(--ease-out) both; }
+
+@keyframes wipeIn { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes wipeOut { from { transform: none; } to { transform: translateX(-100%); } }
+@keyframes nameIn { from { opacity: 0; transform: translateX(120px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
+}

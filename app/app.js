@@ -30,7 +30,7 @@
   var $ = function (id) { return document.getElementById(id); };
   var stage = $('stage'), tilesEl = $('tiles'), glass = $('glass'), hero = $('hero');
   var ambients = [$('ambientA'), $('ambientB')], ambientFront = 0, ambientColor = null;
-  var pills = [$('btnInputs'), $('btnWifi'), $('btnSettings')];
+  var pills = [$('btnPrev'), $('btnPlay'), $('btnNext'), $('btnInputs'), $('btnWifi'), $('btnSettings')];   // music controls sit under the clock
   var panel = $('inputsPanel');
 
   var items = [];               // {app, el, color}
@@ -59,7 +59,19 @@
     }
   }
 
+  /** Anime eyecatch: a wipe in the app's colour with its name, then the app opens behind it. */
   function launch(id, title, params) {
+    document.dispatchEvent(new CustomEvent('launcher:launch'));
+    var wipe = $('wipe');
+    $('wipeName').textContent = title || '';
+    wipe.className = '';
+    wipe.offsetWidth;
+    wipe.className = 'in';
+    setTimeout(function () { reallyLaunch(id, title, params); }, 380);
+    setTimeout(function () { wipe.className = 'out'; }, 1600);
+  }
+
+  function reallyLaunch(id, title, params) {
     luna('luna://com.webos.applicationManager/launch', { id: id, params: params || {} }, function (res) {
       if (res.returnValue === false) toast("Can't open " + (title || id));
     });
@@ -346,6 +358,10 @@
       hero.style.opacity = '0';
       hero.style.transform = 'translateX(-24px)';
       clearTimeout(hero.swap);
+      var speed = $('speed');
+      speed.className = '';
+      speed.offsetWidth;
+      speed.className = 'go';
       hero.swap = setTimeout(function () {
         hero.textContent = label;
         hero.style.transition = 'none';
@@ -365,18 +381,15 @@
     hero.style.opacity = '0';
   }
 
-  /** Crossfades the glow to a new colour by swapping between two layers. */
+  /** The sunset behind the dock takes the focused app's colour; washed-out colours keep vermilion. */
   function setAmbient(color) {
     if (!color) return;
     var key = color.join(',');
     if (key === ambientColor) return;
     ambientColor = key;
-    var back = ambients[1 - ambientFront];
-    back.style.background = 'radial-gradient(circle 1190px at 32% 42%, rgba(' + key + ',0.36) 0%, rgba(' +
-      key + ',0.15) 50%, rgba(' + key + ',0) 100%)';
-    back.style.opacity = '1';
-    ambients[ambientFront].style.opacity = '0';
-    ambientFront = 1 - ambientFront;
+    var hsv = rgbToHsv(color);
+    var c = hsv[1] < 0.3 || hsv[2] < 0.35 ? '232,69,44' : key;
+    document.body.style.setProperty('--sun', 'rgb(' + c + ')');
   }
 
   function focusPill(i) {
@@ -434,8 +447,12 @@
   }
 
   function activatePill(i) {
-    if (i === 0) showInputs();
-    else if (i === 1) launch('com.palm.app.settings', 'Settings', { target: 'network' });
+    var id = pills[i].id;
+    if (id === 'btnPlay') { if (window.Music) Music.toggle(); }
+    else if (id === 'btnPrev') { if (window.Music) Music.skip(-1); }
+    else if (id === 'btnNext') { if (window.Music) Music.skip(1); }
+    else if (id === 'btnInputs') showInputs();
+    else if (id === 'btnWifi') launch('com.palm.app.settings', 'Settings', { target: 'network' });
     else launch('com.palm.app.settings', 'Settings');
   }
 
@@ -453,7 +470,7 @@
     if (!inputRows.length) { toast('No inputs found'); return; }
 
     // Hang right below the Inputs pill, at least as wide as it.
-    var r = pills[0].getBoundingClientRect();
+    var r = $('btnInputs').getBoundingClientRect();
     panel.style.left = r.left + 'px';
     panel.style.top = (r.bottom + 20) + 'px';
     panel.style.minWidth = Math.max(r.width, 300) + 'px';
